@@ -1,0 +1,30 @@
+{
+  "name": "liem-harness",
+  "version": "1.0.0",
+  "description": "A harness that I have coded from scratch.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liem2903/liem-harness.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/liem2903/liem-harness/issues"
+  },
+  "homepage": "https://github.com/liem2903/liem-harness#readme",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.121.0",
+    "dotenv": "^17.4.2",
+    "fs": "^0.0.1-security"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.0",
+    "tsx": "^4.23.12"
+  }
+}
