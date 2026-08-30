@@ -1,12 +1,11 @@
 import 'dotenv/config';
 import Anthropic from '@anthropic-ai/sdk';
 import { MessageParam, Tool } from '@anthropic-ai/sdk/resources';
-import read from '../tools/read';
+import { useTool } from './helper';
 
 const client = new Anthropic();
 const messages: MessageParam[] = [{role: "user", content: "Look through my files and extract the contents of my hello.txt file"}];
 
-console.log("User:", messages[0].content);
 const tools: Tool[] = [
     {
         name: "read",
@@ -21,6 +20,24 @@ const tools: Tool[] = [
             },
             required: ["path"]
         }
+    }, 
+    {
+        name: "glob",
+        description: "Given a pattern with wild cards - search through every file until you find a matching pattern.", 
+        input_schema: {
+            type: "object",
+            properties: {   
+                pattern: {
+                    type: "string",
+                    description: "Pattern that matches the file"
+                }, 
+                root: {
+                    type: "string",
+                    description: "Absolute path to the directory to search from, e.g. /home/liem/projects/my-app. Use the project root unless searching a specific subdirectory."
+                }
+            },
+            required: ["pattern", "root"]
+        },
     }
 ]
 
@@ -31,36 +48,18 @@ while (attempts < 20) {
         model: "claude-opus-5",
         max_tokens: 1000,
         tools,
-        tool_choice: {type: "auto", disable_parallel_tool_use: true},
+        tool_choice: {type: "auto", disable_parallel_tool_use: false},
         messages,
     });
-
-    messages.push({role: prompt.role, content: prompt.content});
+    // Should not push instantly.
     console.log(prompt.content.find((b) => b.type === "text")?.text);
+    messages.push({role: prompt.role, content: prompt.content});
 
     if (prompt.stop_reason != "tool_use") break;
 
-    const tool_use = prompt.content.find((block): block is Anthropic.ToolUseBlock => block.type === "tool_use");
-
-    if (!tool_use) break;
-
-    if (tool_use.name === "read") {
-        const { path } = tool_use.input as { path: string };
-
-        try {
-            const content: string = await read(path);
-
-            messages.push({role: "user", content: [{
-                type: "tool_result",
-                tool_use_id: tool_use.id,
-                content,
-            }]});
-        } catch (err) {
-            messages.push({role: "user", content: [{type: "tool_result", tool_use_id: tool_use.id, content: "Error", is_error: true}]})
-        }
-    } else {
-        messages.push({role: "user", content: [{type: "tool_result", tool_use_id: tool_use.id, content: "Tool does not exist yet", is_error: true}]})
-    }
+    const tool_use = prompt.content.filter((block): block is Anthropic.ToolUseBlock => block.type === "tool_use");
+    const tool_blocks: Anthropic.ToolResultBlockParam[] = await Promise.all(tool_use.map((tool) => useTool(tool)))
+    messages.push({role: "user", content: tool_blocks});
 
     attempts += 1
 }
