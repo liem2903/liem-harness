@@ -23,20 +23,16 @@ const tools: Tool[] = [
     }, 
     {
         name: "glob",
-        description: "Given a pattern with wild cards - search through every file until you find a matching pattern.", 
+        description: "Given a pattern with wild cards - search through every file in the project, starting from the project root and recursing into subdirectories, until you find a matching pattern.",
         input_schema: {
             type: "object",
-            properties: {   
+            properties: {
                 pattern: {
                     type: "string",
                     description: "Pattern that matches the file"
-                }, 
-                root: {
-                    type: "string",
-                    description: "Absolute path to the directory to search from, e.g. /home/liem/projects/my-app. Use the project root unless searching a specific subdirectory."
                 }
             },
-            required: ["pattern", "root"]
+            required: ["pattern"]
         },
     }
 ]
@@ -58,7 +54,10 @@ while (attempts < 20) {
     if (prompt.stop_reason != "tool_use") break;
 
     const tool_use = prompt.content.filter((block): block is Anthropic.ToolUseBlock => block.type === "tool_use");
-    const tool_blocks: Anthropic.ToolResultBlockParam[] = await Promise.all(tool_use.map((tool) => useTool(tool)))
+    console.log(tool_use);
+
+    const tool_blocks: Anthropic.ToolResultBlockParam[] = await Promise.all(tool_use.map((tool) => useTool(tool)));
+
     messages.push({role: "user", content: tool_blocks});
 
     attempts += 1
